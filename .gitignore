@@ -1,0 +1,10 @@
+.env
+data/profile.json
+data/relationship.json
+data/timeline.json
+data/language-library.json
+data/forbidden-expressions.json
+data/training-progress.json
+data/*.bak
+node_modules/
+*.log

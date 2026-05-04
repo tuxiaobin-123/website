@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "summary": "还没有形成画像。完成几次 AI 复盘后，这里会总结你的常见沟通模式。",
+  "relationshipStage": "未知",
+  "weaknesses": [],
+  "strengths": [],
+  "facts": [],
+  "trainingPlan": [
+    "先完成一次真实聊天复盘。",
+    "再用下一句生成器生成三种不同语气。",
+    "每次情绪上来时先用上头拦截器。"
+  ],
+  "historyCount": 0
+}
