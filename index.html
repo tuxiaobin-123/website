@@ -309,6 +309,54 @@
             </div>
           </article>
 
+          <article class="summary-panel searchable universal-communication" id="universalCommunication">
+            <div class="section-head compact-head">
+              <div>
+                <span class="tag">核心升级</span>
+                <h2>通用人际沟通</h2>
+                <p>不只处理恋爱聊天，也可以处理朋友、陌生人、同事、家人、客户和冲突对象。先选关系，再选目的，最后让 DeepSeek 按场景给你稳妥表达。</p>
+              </div>
+            </div>
+            <div class="universal-grid">
+              <label for="universalRelationType">关系类型
+                <select id="universalRelationType">
+                  <option value="恋人 / 暧昧对象">恋人 / 暧昧对象</option>
+                  <option value="普通朋友">普通朋友</option>
+                  <option value="陌生人 / 新认识的人">陌生人 / 新认识的人</option>
+                  <option value="同事 / 上下级">同事 / 上下级</option>
+                  <option value="家人 / 亲戚">家人 / 亲戚</option>
+                  <option value="客户 / 合作方">客户 / 合作方</option>
+                  <option value="冲突对象 / 关系变冷的人">冲突对象 / 关系变冷的人</option>
+                </select>
+              </label>
+              <label for="universalGoal">沟通目的
+                <select id="universalGoal">
+                  <option value="破冰">破冰</option>
+                  <option value="延续聊天">延续聊天</option>
+                  <option value="表达不满">表达不满</option>
+                  <option value="道歉修复">道歉修复</option>
+                  <option value="拒绝别人">拒绝别人</option>
+                  <option value="邀约">邀约</option>
+                  <option value="催进度">催进度</option>
+                  <option value="结束关系">结束关系</option>
+                  <option value="处理冲突">处理冲突</option>
+                </select>
+              </label>
+              <label for="universalOtherState">对方状态
+                <input id="universalOtherState" type="text" placeholder="例如：有点冷淡、很忙、情绪激动、刚认识">
+              </label>
+            </div>
+            <textarea id="universalDraft" placeholder="写下你原本想说的话，或描述当前场景。例：同事一直没给我文件，我有点急，想催一下但不想显得冒犯。"></textarea>
+            <div class="tool-actions">
+              <button id="universalExampleBtn" class="action-btn" type="button">填入示例</button>
+              <button id="universalGenerateBtn" class="action-btn primary" type="button">生成通用表达</button>
+            </div>
+            <div id="universalResult" class="result universal-result" aria-live="polite">
+              <strong>等待场景</strong>
+              <p>会输出稳妥版、温和版、清晰边界版、不建议说法和下一步动作。</p>
+            </div>
+          </article>
+
           <div class="route-strip" aria-label="建议学习顺序">
             <a class="route-step" href="#logic"><strong>1. 看逻辑</strong><span>先知道哪些行为会加分或扣分。</span></a>
             <a class="route-step" href="#stages"><strong>2. 定阶段</strong><span>不同关系阶段，说话尺度不同。</span></a>

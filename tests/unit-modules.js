@@ -14,6 +14,7 @@ const {
   validateFeedbackReflection,
   validateReviewResult,
   validateNextMessageResult,
+  validateUniversalCommunicationResult,
 } = require("../lib/ai-validators");
 
 const {
@@ -78,6 +79,16 @@ try {
   });
   assert.deepEqual(reflection.keepDoing, ["给空间"]);
   assert(Array.isArray(reflection.adjustNextTime));
+
+  const universal = validateUniversalCommunicationResult({
+    strategy: "先降压",
+    safeReply: "",
+    boundaryReply: " 请明天前同步进度 ",
+    doNotSay: ["你怎么这么慢", "你怎么这么慢"],
+  });
+  assert(universal.safeReply.length > 0);
+  assert.equal(universal.boundaryReply, "请明天前同步进度");
+  assert.deepEqual(universal.doNotSay, ["你怎么这么慢"]);
 
   const insights = buildReviewInsights([
     {

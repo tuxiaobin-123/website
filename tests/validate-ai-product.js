@@ -76,6 +76,14 @@ const requiredIds = [
   "comfortPrinciples",
   "externalResourcePanel",
   "resourceSourceList",
+  "universalCommunication",
+  "universalRelationType",
+  "universalGoal",
+  "universalOtherState",
+  "universalDraft",
+  "universalExampleBtn",
+  "universalGenerateBtn",
+  "universalResult",
   "aiUseOrder",
   "reviewInsightPanel",
   "reviewInsightResult",
@@ -185,7 +193,7 @@ for (const phrase of ["AI 深度复盘", "AI 下一句生成", "用户画像记�
   assert(html.includes(phrase), `Missing product phrase: ${phrase}`);
 }
 
-for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights"]) {
+for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights", "fillUniversalExample", "runUniversalCommunication", "renderUniversalCommunication"]) {
   assert(aiCoach.includes(fn), `Missing AI coach function: ${fn}`);
 }
 
@@ -205,6 +213,9 @@ for (const visualNeedle of [
   "resource-grid",
   "resource-card",
   "source-link",
+  "universal-communication",
+  "universal-grid",
+  "universal-result",
   "cover-hero",
   "cover-visual",
   "quick-access-card",
@@ -265,6 +276,13 @@ for (const coverPhrase of [
   "关系推进预览",
   "AI 使用顺序",
   "外部资源与观点",
+  "通用人际沟通",
+  "关系类型",
+  "沟通目的",
+  "对方状态",
+  "稳妥版",
+  "清晰边界版",
+  "不建议说法",
   "Gottman 连接请求",
   "NVC 非暴力沟通",
   "Harvard 主动倾听",
@@ -324,7 +342,7 @@ for (const needle of ["writeJsonAtomic", "backupCorruptJson", "readJsonFile", "m
   assert(jsonStore.includes(needle), `Missing json-store capability: ${needle}`);
 }
 
-for (const needle of ["validateReviewResult", "validateNextMessageResult", "validateColdStartInsights", "validateFeedbackReflection", "normalizeStringArray", "module.exports"]) {
+for (const needle of ["validateReviewResult", "validateNextMessageResult", "validateColdStartInsights", "validateFeedbackReflection", "validateUniversalCommunicationResult", "normalizeStringArray", "module.exports"]) {
   assert(aiValidators.includes(needle), `Missing ai-validator capability: ${needle}`);
 }
 
@@ -342,6 +360,7 @@ for (const needle of [
   "isAuthorized",
   "/api/ai/review",
   "/api/ai/next-message",
+  "/api/ai/universal-communication",
   "/api/profile",
   "/api/relationship",
   "/api/timeline",
@@ -372,6 +391,8 @@ for (const needle of [
   "TRAINING_PROGRESS_PATH",
   "buildReviewInsights",
   "cold-start-insights",
+  "universal-communication",
+  "validateUniversalCommunicationResult",
   "feedback-loop",
   "validateColdStartInsights",
   "validateFeedbackReflection",

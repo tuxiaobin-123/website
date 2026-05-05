@@ -718,6 +718,57 @@ async function runColdStartInsights() {
   }
 }
 
+function fillUniversalExample() {
+  document.getElementById("universalRelationType").value = "同事 / 上下级";
+  document.getElementById("universalGoal").value = "催进度";
+  document.getElementById("universalOtherState").value = "对方可能很忙，但我这边确实需要文件继续推进";
+  document.getElementById("universalDraft").value = "你怎么还没发给我？我这边都等半天了。";
+}
+
+function renderUniversalCommunication(data) {
+  const result = document.getElementById("universalResult");
+  const doNotSay = Array.isArray(data.doNotSay) && data.doNotSay.length
+    ? data.doNotSay.map((item) => "<li>" + escapeHtml(item) + "</li>").join("")
+    : "<li>不要质问、讽刺、威胁或连续追问。</li>";
+  result.innerHTML =
+    "<strong>通用人际沟通策略</strong>" +
+    "<p>" + escapeHtml(data.strategy || "先降低压力，再清楚表达目的。") + "</p>" +
+    "<p><strong>关系风险：</strong>" + escapeHtml(data.relationRisk || "") + "</p>" +
+    "<div class=\"talk-line\"><strong>稳妥版</strong><p>" + escapeHtml(data.safeReply || "") + "</p></div>" +
+    "<div class=\"talk-line\"><strong>温和版</strong><p>" + escapeHtml(data.warmReply || "") + "</p></div>" +
+    "<div class=\"talk-line\"><strong>清晰边界版</strong><p>" + escapeHtml(data.boundaryReply || "") + "</p></div>" +
+    "<div class=\"talk-line\"><strong>一句话短版</strong><p>" + escapeHtml(data.shortReply || "") + "</p></div>" +
+    "<p><strong>不建议说法</strong></p><ul>" + doNotSay + "</ul>" +
+    "<p><strong>下一步：</strong>" + escapeHtml(data.nextStep || "") + "</p>";
+}
+
+async function runUniversalCommunication() {
+  const relationType = document.getElementById("universalRelationType").value;
+  const goal = document.getElementById("universalGoal").value;
+  const otherState = document.getElementById("universalOtherState").value.trim();
+  const message = document.getElementById("universalDraft").value.trim();
+  const result = document.getElementById("universalResult");
+  if (!message) {
+    result.innerHTML = "<strong>还没有场景</strong><p>先写你原本想说的话，或描述现在卡住的关系场景。</p>";
+    return;
+  }
+  result.innerHTML = "<strong>DeepSeek 正在处理</strong><p>正在按关系类型、沟通目的和对方状态生成合适表达。</p>";
+  try {
+    const payload = await callAiEndpoint("/api/ai/universal-communication", {
+      relationType,
+      goal,
+      otherState,
+      message
+    });
+    renderUniversalCommunication(payload.data);
+    if (payload.profile) renderProfile(payload.profile);
+    if (payload.timeline) renderTimeline(payload.timeline);
+    createPendingFeedback("通用人际沟通：" + relationType + " / " + goal, payload.data.safeReply || "", message);
+  } catch (error) {
+    renderAiError(result, error);
+  }
+}
+
 function renderSystemStatus(status) {
   const box = document.getElementById("systemStatusResult");
   if (!box || !status) return;
@@ -844,6 +895,8 @@ function initAiCoach() {
   document.getElementById("refreshProgressBtn").addEventListener("click", refreshTrainingProgress);
   document.getElementById("refreshReviewInsightsBtn").addEventListener("click", refreshReviewInsights);
   document.getElementById("coldStartInsightsBtn").addEventListener("click", runColdStartInsights);
+  document.getElementById("universalExampleBtn").addEventListener("click", fillUniversalExample);
+  document.getElementById("universalGenerateBtn").addEventListener("click", runUniversalCommunication);
   document.getElementById("refreshSystemStatusBtn").addEventListener("click", refreshSystemStatus);
   document.getElementById("exportLocalDataBtn").addEventListener("click", exportLocalData);
   document.getElementById("resetLocalDataBtn").addEventListener("click", resetLocalData);

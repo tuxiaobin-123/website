@@ -12,6 +12,7 @@ const {
   validateColdStartInsights,
   validateFeedbackReflection,
   validateReviewResult,
+  validateUniversalCommunicationResult,
 } = require("./lib/ai-validators");
 const {
   buildReviewInsights,
@@ -731,6 +732,40 @@ function buildPrompt(task, input, profile, relationship = defaultRelationship())
     ].join("\n");
   }
 
+  if (task === "universal-communication") {
+    return [
+      "任务：这是通用人际沟通，不限恋爱。请根据关系类型、沟通目的、对方状态和用户原话，生成合适表达。",
+      "当前用户画像：",
+      profileBlock,
+      "当前关系档案：",
+      relationshipBlock,
+      "用户输入：",
+      inputBlock,
+      "本地训练数据上下文：优先参考 phrasePacks 的自然表达，严格避开 forbiddenSamples。",
+      trainingContextBlock,
+      "原则：不同关系使用不同尺度。恋人要有温度，朋友要轻松，陌生人要低压力，职场要清楚，家人要降冲突，客户合作方要专业。不要输出操控、威胁、羞辱、冷暴力或逼迫。对方有拒绝、犹豫、沉默时要建议后退或降低频率。",
+      "请返回 JSON：",
+      JSON.stringify({
+        strategy: "这类关系和目的下的沟通策略",
+        relationRisk: "这类关系最容易踩的雷",
+        safeReply: "稳妥版表达",
+        warmReply: "温和版表达",
+        boundaryReply: "清晰边界版表达",
+        shortReply: "一句话短版",
+        doNotSay: ["不建议说法"],
+        nextStep: "发出后下一步怎么做",
+        profilePatch: {
+          summary: "更新后的画像摘要",
+          relationshipStage: "如能推断则写，否则保持未知",
+          weaknesses: ["如果暴露出弱点就写"],
+          strengths: ["如果暴露出优势就写"],
+          facts: ["只保存抽象事实"],
+          trainingPlan: ["下一步训练计划"]
+        }
+      }, null, 2)
+    ].join("\n");
+  }
+
   if (task === "feedback-loop") {
     return [
       "任务：用户已经使用了一句 AI 建议，现在根据真实反馈做训练闭环分析。",
@@ -968,6 +1003,37 @@ async function handleApi(req, res, pathname) {
     const profile = defaultProfile();
     writeProfile(profile);
     return sendJson(res, 200, { ok: true, profile });
+  }
+
+  if (req.method === "POST" && pathname === "/api/ai/universal-communication") {
+    const body = await readJson(req);
+    if (!body.message || typeof body.message !== "string") {
+      return sendJson(res, 400, { ok: false, error: "请提供 message 字段。" });
+    }
+    const profile = readProfile();
+    const relationship = readRelationship();
+    const data = validateUniversalCommunicationResult(await callAI({
+      task: "universal-communication",
+      input: {
+        relationType: String(body.relationType || "普通朋友").slice(0, 80),
+        goal: String(body.goal || "清楚表达").slice(0, 80),
+        otherState: String(body.otherState || "未知").slice(0, 120),
+        message: String(body.message || "").slice(0, 3000)
+      },
+      profile,
+      relationship
+    }));
+    const updatedProfile = mergeProfile(profile, data.profilePatch);
+    addTimelineEntry({
+      type: "universal-communication",
+      title: "通用人际沟通",
+      summary: data.strategy,
+      nextMessage: data.safeReply,
+      relationType: String(body.relationType || "普通朋友").slice(0, 80),
+      goal: String(body.goal || "清楚表达").slice(0, 80),
+      relationshipName: relationship.name
+    });
+    return sendJson(res, 200, { ok: true, data, profile: updatedProfile, timeline: readTimeline().slice(-30).reverse() });
   }
 
   if (req.method === "POST" && pathname === "/api/ai/cold-start-insights") {

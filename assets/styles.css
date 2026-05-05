@@ -909,6 +909,43 @@ p {
   text-decoration: underline;
 }
 
+.universal-communication {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+  border-color: rgba(47, 129, 116, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 250, 242, 0.92), rgba(237, 247, 241, 0.8)),
+    var(--surface);
+}
+
+.universal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.universal-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--night);
+  font-weight: 800;
+}
+
+.universal-communication textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.universal-result {
+  display: grid;
+  gap: 10px;
+}
+
+.universal-result .talk-line {
+  background: rgba(255, 250, 242, 0.72);
+}
+
 .relationship-flow-preview {
   display: grid;
   align-content: start;
@@ -1666,6 +1703,7 @@ p {
   .quick-access-grid,
   .ai-command-strip,
   .resource-grid,
+  .universal-grid,
   .grid-3,
   .grid-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1709,6 +1747,8 @@ p {
   .insight-grid,
   .resource-panel,
   .resource-grid,
+  .universal-communication,
+  .universal-grid,
   .route-strip {
     min-width: 0;
     max-width: calc(100vw - 28px);
@@ -1727,6 +1767,7 @@ p {
   .cover-metrics,
   .insight-digest,
   .resource-grid,
+  .universal-grid,
   .flow-steps {
     grid-template-columns: 1fr;
   }
