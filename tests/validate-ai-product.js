@@ -84,6 +84,12 @@ const requiredIds = [
   "universalExampleBtn",
   "universalGenerateBtn",
   "universalResult",
+  "manipulationSafety",
+  "manipulationInput",
+  "manipulationExampleBtn",
+  "manipulationCheckBtn",
+  "manipulationSaveForbiddenBtn",
+  "manipulationResult",
   "aiUseOrder",
   "reviewInsightPanel",
   "reviewInsightResult",
@@ -193,7 +199,7 @@ for (const phrase of ["AI 深度复盘", "AI 下一句生成", "用户画像记�
   assert(html.includes(phrase), `Missing product phrase: ${phrase}`);
 }
 
-for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights", "fillUniversalExample", "runUniversalCommunication", "renderUniversalCommunication"]) {
+for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights", "fillUniversalExample", "runUniversalCommunication", "renderUniversalCommunication", "fillManipulationExample", "runManipulationCheck", "renderManipulationCheck", "saveManipulationForbidden"]) {
   assert(aiCoach.includes(fn), `Missing AI coach function: ${fn}`);
 }
 
@@ -216,6 +222,8 @@ for (const visualNeedle of [
   "universal-communication",
   "universal-grid",
   "universal-result",
+  "manipulation-safety",
+  "risk-list",
   "cover-hero",
   "cover-visual",
   "quick-access-card",
@@ -283,6 +291,11 @@ for (const coverPhrase of [
   "稳妥版",
   "清晰边界版",
   "不建议说法",
+  "反 PUA 安全检测",
+  "操控表达识别器",
+  "危险点",
+  "健康改写",
+  "加入禁用表达库",
   "Gottman 连接请求",
   "NVC 非暴力沟通",
   "Harvard 主动倾听",
@@ -342,7 +355,7 @@ for (const needle of ["writeJsonAtomic", "backupCorruptJson", "readJsonFile", "m
   assert(jsonStore.includes(needle), `Missing json-store capability: ${needle}`);
 }
 
-for (const needle of ["validateReviewResult", "validateNextMessageResult", "validateColdStartInsights", "validateFeedbackReflection", "validateUniversalCommunicationResult", "normalizeStringArray", "module.exports"]) {
+for (const needle of ["validateReviewResult", "validateNextMessageResult", "validateColdStartInsights", "validateFeedbackReflection", "validateUniversalCommunicationResult", "validateManipulationCheckResult", "normalizeStringArray", "module.exports"]) {
   assert(aiValidators.includes(needle), `Missing ai-validator capability: ${needle}`);
 }
 
@@ -361,6 +374,7 @@ for (const needle of [
   "/api/ai/review",
   "/api/ai/next-message",
   "/api/ai/universal-communication",
+  "/api/ai/manipulation-check",
   "/api/profile",
   "/api/relationship",
   "/api/timeline",
@@ -392,6 +406,9 @@ for (const needle of [
   "buildReviewInsights",
   "cold-start-insights",
   "universal-communication",
+  "manipulation-check",
+  "localManipulationSignals",
+  "validateManipulationCheckResult",
   "validateUniversalCommunicationResult",
   "feedback-loop",
   "validateColdStartInsights",

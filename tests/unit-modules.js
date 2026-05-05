@@ -15,6 +15,7 @@ const {
   validateReviewResult,
   validateNextMessageResult,
   validateUniversalCommunicationResult,
+  validateManipulationCheckResult,
 } = require("../lib/ai-validators");
 
 const {
@@ -89,6 +90,16 @@ try {
   assert(universal.safeReply.length > 0);
   assert.equal(universal.boundaryReply, "请明天前同步进度");
   assert.deepEqual(universal.doNotSay, ["你怎么这么慢"]);
+
+  const manipulation = validateManipulationCheckResult({
+    riskLevel: 99,
+    manipulationTypes: ["情绪勒索", "情绪勒索"],
+    redFlags: ["用在乎证明服从"],
+    saferRewrite: "",
+  });
+  assert.equal(manipulation.riskLevel, 10);
+  assert.deepEqual(manipulation.manipulationTypes, ["情绪勒索"]);
+  assert(manipulation.saferRewrite.length > 0);
 
   const insights = buildReviewInsights([
     {

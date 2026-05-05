@@ -946,6 +946,39 @@ p {
   background: rgba(255, 250, 242, 0.72);
 }
 
+.manipulation-safety {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+  border-color: rgba(173, 84, 64, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 237, 0.95), rgba(255, 240, 232, 0.82)),
+    var(--surface);
+}
+
+.manipulation-safety textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.risk-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.risk-meter {
+  display: inline-flex;
+  width: max-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff0c9;
+  color: #7c4a03;
+  font-weight: 900;
+}
+
 .relationship-flow-preview {
   display: grid;
   align-content: start;
@@ -1748,6 +1781,7 @@ p {
   .resource-panel,
   .resource-grid,
   .universal-communication,
+  .manipulation-safety,
   .universal-grid,
   .route-strip {
     min-width: 0;

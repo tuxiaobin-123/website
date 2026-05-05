@@ -357,6 +357,26 @@
             </div>
           </article>
 
+          <article class="summary-panel searchable manipulation-safety" id="manipulationSafety">
+            <div class="section-head compact-head">
+              <div>
+                <span class="tag warn">安全防线</span>
+                <h2>反 PUA 安全检测</h2>
+                <p>这是操控表达识别器，不提供操控话术。输入一句可能有问题的话，DeepSeek 会识别危险点、解释为什么不健康，并改写成尊重边界的表达。</p>
+              </div>
+            </div>
+            <textarea id="manipulationInput" placeholder="输入你想检测的话。例：你要是真在乎我，就不会这么久不回。"></textarea>
+            <div class="tool-actions">
+              <button id="manipulationExampleBtn" class="action-btn" type="button">填入示例</button>
+              <button id="manipulationCheckBtn" class="action-btn primary" type="button">检测危险表达</button>
+              <button id="manipulationSaveForbiddenBtn" class="action-btn" type="button">加入禁用表达库</button>
+            </div>
+            <div id="manipulationResult" class="result universal-result" aria-live="polite">
+              <strong>等待检测</strong>
+              <p>会输出操控类型、危险点、健康改写和边界原则。</p>
+            </div>
+          </article>
+
           <div class="route-strip" aria-label="建议学习顺序">
             <a class="route-step" href="#logic"><strong>1. 看逻辑</strong><span>先知道哪些行为会加分或扣分。</span></a>
             <a class="route-step" href="#stages"><strong>2. 定阶段</strong><span>不同关系阶段，说话尺度不同。</span></a>

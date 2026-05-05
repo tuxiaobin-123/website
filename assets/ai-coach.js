@@ -23,6 +23,7 @@ async function callAiEndpoint(path, body) {
 
 let pendingFeedback = null;
 let pendingFeedbackTimer = null;
+let lastManipulationInput = "";
 
 function renderAiError(container, error) {
   container.innerHTML =
@@ -769,6 +770,60 @@ async function runUniversalCommunication() {
   }
 }
 
+function fillManipulationExample() {
+  document.getElementById("manipulationInput").value = "你要是真在乎我，就不会这么久不回。";
+}
+
+function renderManipulationCheck(data) {
+  const result = document.getElementById("manipulationResult");
+  const types = Array.isArray(data.manipulationTypes) ? data.manipulationTypes : [];
+  const redFlags = Array.isArray(data.redFlags) ? data.redFlags : [];
+  result.innerHTML =
+    "<strong>操控表达识别器</strong>" +
+    "<span class=\"risk-meter\">风险 " + Number(data.riskLevel || 0) + "/10</span>" +
+    "<p>" + escapeHtml(data.summary || "") + "</p>" +
+    "<p><strong>操控类型</strong></p><ul class=\"risk-list\">" + types.map((item) => "<li>" + escapeHtml(item) + "</li>").join("") + "</ul>" +
+    "<p><strong>危险点</strong></p><ul class=\"risk-list\">" + redFlags.map((item) => "<li>" + escapeHtml(item) + "</li>").join("") + "</ul>" +
+    "<p><strong>为什么不健康：</strong>" + escapeHtml(data.whyUnsafe || "") + "</p>" +
+    "<div class=\"talk-line\"><strong>健康改写</strong><p>" + escapeHtml(data.saferRewrite || "") + "</p></div>" +
+    "<p><strong>边界原则：</strong>" + escapeHtml(data.boundaryPrinciple || "") + "</p>";
+}
+
+async function runManipulationCheck() {
+  const input = document.getElementById("manipulationInput");
+  const text = input.value.trim();
+  const result = document.getElementById("manipulationResult");
+  if (!text) {
+    result.innerHTML = "<strong>还没有内容</strong><p>先输入一句你想检测的表达。</p>";
+    return;
+  }
+  lastManipulationInput = text;
+  result.innerHTML = "<strong>DeepSeek 正在做安全检测</strong><p>只做识别、防御和健康改写，不生成操控话术。</p>";
+  try {
+    const payload = await callAiEndpoint("/api/ai/manipulation-check", { text });
+    renderManipulationCheck(payload.data);
+    if (payload.timeline) renderTimeline(payload.timeline);
+  } catch (error) {
+    renderAiError(result, error);
+  }
+}
+
+async function saveManipulationForbidden() {
+  const text = (lastManipulationInput || document.getElementById("manipulationInput").value || "").trim();
+  const result = document.getElementById("manipulationResult");
+  if (!text) {
+    result.innerHTML = "<strong>还没有禁用表达</strong><p>先输入或检测一句危险表达。</p>";
+    return;
+  }
+  try {
+    const payload = await callAiEndpoint("/api/forbidden", { text });
+    renderForbiddenExpressions(payload.forbidden);
+    result.innerHTML += "<p><strong>已加入禁用表达库。</strong></p>";
+  } catch (error) {
+    renderAiError(result, error);
+  }
+}
+
 function renderSystemStatus(status) {
   const box = document.getElementById("systemStatusResult");
   if (!box || !status) return;
@@ -897,6 +952,9 @@ function initAiCoach() {
   document.getElementById("coldStartInsightsBtn").addEventListener("click", runColdStartInsights);
   document.getElementById("universalExampleBtn").addEventListener("click", fillUniversalExample);
   document.getElementById("universalGenerateBtn").addEventListener("click", runUniversalCommunication);
+  document.getElementById("manipulationExampleBtn").addEventListener("click", fillManipulationExample);
+  document.getElementById("manipulationCheckBtn").addEventListener("click", runManipulationCheck);
+  document.getElementById("manipulationSaveForbiddenBtn").addEventListener("click", saveManipulationForbidden);
   document.getElementById("refreshSystemStatusBtn").addEventListener("click", refreshSystemStatus);
   document.getElementById("exportLocalDataBtn").addEventListener("click", exportLocalData);
   document.getElementById("resetLocalDataBtn").addEventListener("click", resetLocalData);

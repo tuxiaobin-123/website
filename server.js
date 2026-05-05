@@ -11,6 +11,7 @@ const {
   validateNextMessageResult,
   validateColdStartInsights,
   validateFeedbackReflection,
+  validateManipulationCheckResult,
   validateReviewResult,
   validateUniversalCommunicationResult,
 } = require("./lib/ai-validators");
@@ -429,6 +430,33 @@ function uniqueStrings(items) {
   return out;
 }
 
+function localManipulationSignals(text) {
+  const source = String(text || "");
+  const matches = [];
+  const add = (type, redFlag, risk) => matches.push({ type, redFlag, risk });
+  if (/真(的)?在乎|爱我.*就|在乎我.*就|不回.*不在乎|证明.*喜欢/.test(source)) {
+    add("情绪勒索", "用“在乎/爱/证明”要求对方服从或即时回应。", 8);
+  }
+  if (/你就是|你总是|你从来|这么差|没人会|配不上|有病/.test(source)) {
+    add("打压羞辱", "用贴标签或贬低制造自我怀疑。", 8);
+  }
+  if (/不然我就|你等着|别怪我|我就消失|拉黑你|公开/.test(source)) {
+    add("威胁施压", "用后果威胁迫使对方按自己的意愿行动。", 9);
+  }
+  if (/我不理你|晾着你|让你着急|故意冷|冷处理/.test(source)) {
+    add("冷暴力", "用断联或冷处理惩罚对方。", 7);
+  }
+  if (/必须|马上|现在就|别废话|不许|只能/.test(source) && /回|见|发|解释|答应/.test(source)) {
+    add("逼迫控制", "不给对方选择空间，要求立即服从。", 7);
+  }
+  const riskLevel = matches.reduce((max, item) => Math.max(max, item.risk), 0);
+  return {
+    riskLevel,
+    types: uniqueStrings(matches.map((item) => item.type)),
+    redFlags: uniqueStrings(matches.map((item) => item.redFlag))
+  };
+}
+
 async function readJson(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -766,6 +794,30 @@ function buildPrompt(task, input, profile, relationship = defaultRelationship())
     ].join("\n");
   }
 
+  if (task === "manipulation-check") {
+    return [
+      "任务：这是反 PUA 安全检测。用户输入一句可能危险的话，请识别其中是否存在操控、打压、冷暴力、情绪勒索、威胁、羞辱、诱导依赖、越界推进或逼迫。",
+      "重要边界：不要教学如何操控别人；不要补全、扩写或优化操控话术；只能做风险识别、危害解释和健康改写。",
+      "当前用户画像：",
+      profileBlock,
+      "当前关系档案：",
+      relationshipBlock,
+      "用户输入：",
+      inputBlock,
+      "请返回 JSON：",
+      JSON.stringify({
+        riskLevel: 0,
+        summary: "一句话判断这句话是否危险",
+        manipulationTypes: ["操控类型标签，例如情绪勒索/打压/冷暴力/威胁/越界推进/无明显操控"],
+        redFlags: ["具体危险点，只做识别，不提供操控技巧"],
+        whyUnsafe: "为什么这种表达不健康",
+        saferRewrite: "改写成尊重边界、低压力、允许对方选择的表达",
+        boundaryPrinciple: "这类场景应该遵守的边界原则",
+        addToForbidden: true
+      }, null, 2)
+    ].join("\n");
+  }
+
   if (task === "feedback-loop") {
     return [
       "任务：用户已经使用了一句 AI 建议，现在根据真实反馈做训练闭环分析。",
@@ -1034,6 +1086,42 @@ async function handleApi(req, res, pathname) {
       relationshipName: relationship.name
     });
     return sendJson(res, 200, { ok: true, data, profile: updatedProfile, timeline: readTimeline().slice(-30).reverse() });
+  }
+
+  if (req.method === "POST" && pathname === "/api/ai/manipulation-check") {
+    const body = await readJson(req);
+    if (!body.text || typeof body.text !== "string") {
+      return sendJson(res, 400, { ok: false, error: "请提供 text 字段。" });
+    }
+    const profile = readProfile();
+    const relationship = readRelationship();
+    const data = validateManipulationCheckResult(await callAI({
+      task: "manipulation-check",
+      input: {
+        text: String(body.text || "").slice(0, 2000),
+        context: String(body.context || "").slice(0, 800)
+      },
+      profile,
+      relationship
+    }));
+    const localSignals = localManipulationSignals(body.text);
+    if (localSignals.riskLevel > data.riskLevel) {
+      data.riskLevel = localSignals.riskLevel;
+      data.summary = "本地安全规则识别到明显操控风险：" + localSignals.types.join("、") + "。不建议发送原句。";
+      data.manipulationTypes = uniqueStrings([...localSignals.types, ...data.manipulationTypes]).slice(0, 6);
+      data.redFlags = uniqueStrings([...localSignals.redFlags, ...data.redFlags]).slice(0, 8);
+      data.addToForbidden = true;
+    }
+    addTimelineEntry({
+      type: "manipulation-check",
+      title: "反 PUA 安全检测",
+      summary: data.summary,
+      riskScore: data.riskLevel,
+      userIssues: data.manipulationTypes,
+      betterReplies: [data.saferRewrite],
+      relationshipName: relationship.name
+    });
+    return sendJson(res, 200, { ok: true, data, timeline: readTimeline().slice(-30).reverse() });
   }
 
   if (req.method === "POST" && pathname === "/api/ai/cold-start-insights") {
