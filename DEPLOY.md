@@ -14,6 +14,27 @@
 npm start
 ```
 
+## Render Blueprint 自动部署
+
+仓库根目录已经包含 `render.yaml`。在 Render 里选择 Blueprint 或连接这个仓库时，Render 可以读取该文件创建 Web Service。
+
+`render.yaml` 已经写入非敏感配置：
+
+```bash
+HOST=0.0.0.0
+AI_PROVIDER=deepseek
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+这些敏感值不会提交到 GitHub，需要你在 Render 页面手动填写：
+
+```bash
+DEEPSEEK_API_KEY
+PUBLIC_AUTH_USER
+PUBLIC_AUTH_PASSWORD
+```
+
 ## 必填环境变量
 
 ```bash

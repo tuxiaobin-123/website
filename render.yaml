@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: dating-chat-guide
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: AI_PROVIDER
+        value: deepseek
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: PUBLIC_AUTH_USER
+        sync: false
+      - key: PUBLIC_AUTH_PASSWORD
+        sync: false

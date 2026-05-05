@@ -18,6 +18,7 @@ function assert(condition, message) {
 const requiredFiles = [
   "server.js",
   "package.json",
+  "render.yaml",
   "Dockerfile",
   ".dockerignore",
   "DEPLOY.md",
@@ -340,6 +341,7 @@ for (const smartFn of [
 
 const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
 const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+const renderYaml = fs.readFileSync(path.join(root, "render.yaml"), "utf8");
 const jsonStore = fs.readFileSync(path.join(root, "lib", "json-store.js"), "utf8");
 const aiValidators = fs.readFileSync(path.join(root, "lib", "ai-validators.js"), "utf8");
 const reviewInsights = fs.readFileSync(path.join(root, "lib", "review-insights.js"), "utf8");
@@ -425,5 +427,18 @@ for (const needle of [
 
 assert(pkg.scripts && pkg.scripts.start === "node server.js", "package.json must define start script for deployment");
 assert(pkg.engines && pkg.engines.node, "package.json must declare Node engine");
+for (const needle of [
+  "type: web",
+  "runtime: node",
+  "startCommand: npm start",
+  "HOST",
+  "0.0.0.0",
+  "DEEPSEEK_API_KEY",
+  "PUBLIC_AUTH_USER",
+  "PUBLIC_AUTH_PASSWORD",
+  "sync: false",
+]) {
+  assert(renderYaml.includes(needle), `render.yaml missing deployment setting: ${needle}`);
+}
 
 console.log("AI product checks passed");
