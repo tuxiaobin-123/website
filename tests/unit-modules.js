@@ -9,6 +9,14 @@ const {
 } = require("../lib/json-store");
 
 const {
+  createEmptyAccountDatabase,
+  getOrCreateOwnerAccount,
+  recordDataOwnership,
+  publicAccountStatus,
+  verifyPassword,
+} = require("../lib/account-store");
+
+const {
   normalizeStringArray,
   validateColdStartInsights,
   validateFeedbackReflection,
@@ -32,6 +40,47 @@ try {
   fs.writeFileSync(jsonPath, "{broken", "utf8");
   assert.deepEqual(readJsonFile(jsonPath, () => ({ recovered: true })), { recovered: true });
   assert(fs.readdirSync(tempDir).some((name) => name.includes(".corrupt-") && name.endsWith(".bak")));
+
+  const accountDbPath = path.join(tempDir, "accounts.json");
+  const emptyAccountDb = createEmptyAccountDatabase("2026-05-09T00:00:00.000Z");
+  assert.equal(emptyAccountDb.version, 1);
+  assert.deepEqual(emptyAccountDb.users, []);
+  assert.deepEqual(emptyAccountDb.loginSessions, []);
+
+  const owner = getOrCreateOwnerAccount(accountDbPath, {
+    username: "local-owner",
+    password: "private-password",
+    source: "basic-auth",
+  }, "2026-05-09T00:00:00.000Z");
+  assert.equal(owner.role, "owner");
+  assert.equal(owner.username, "local-owner");
+  assert(!owner.passwordHash.includes("private-password"));
+  assert(verifyPassword("private-password", owner.passwordHash));
+  assert(!verifyPassword("wrong-password", owner.passwordHash));
+
+  const sameOwner = getOrCreateOwnerAccount(accountDbPath, {
+    username: "renamed-owner",
+    password: "new-private-password",
+    source: "basic-auth",
+  }, "2026-05-10T00:00:00.000Z");
+  assert.equal(sameOwner.id, owner.id);
+  assert.equal(sameOwner.username, "renamed-owner");
+  assert(verifyPassword("new-private-password", sameOwner.passwordHash));
+
+  const ownership = recordDataOwnership(accountDbPath, sameOwner.id, [
+    "profile.json",
+    "timeline.json",
+    "sessions.json",
+  ], "2026-05-10T01:00:00.000Z");
+  assert.equal(ownership.userId, sameOwner.id);
+  assert.deepEqual(ownership.files, ["profile.json", "timeline.json", "sessions.json"]);
+
+  const accountStatus = publicAccountStatus(accountDbPath, sameOwner.id);
+  assert.equal(accountStatus.currentUser.username, "renamed-owner");
+  assert.equal(accountStatus.currentUser.passwordConfigured, true);
+  assert.equal(accountStatus.database.userCount, 1);
+  assert.equal(accountStatus.database.ownedFileCount, 3);
+  assert.equal(accountStatus.database.passwordHashesStored, true);
 
   assert.deepEqual(normalizeStringArray([" a ", "a", "", 3, "b"], [], 5), ["a", "b"]);
 

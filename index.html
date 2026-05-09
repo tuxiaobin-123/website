@@ -1194,7 +1194,8 @@
               <div class="privacy-stack">
                 <div><strong>API Key 不进浏览器</strong><p>页面只访问本机后端，密钥保留在 `.env`。</p></div>
                 <div><strong>默认不保存原始聊天</strong><p>AI 复盘只保存摘要、问题标签、训练重点和下一句。</p></div>
-              <div><strong>只为你私有使用</strong><p>本机版绑定 `127.0.0.1`；公网版请设置 `PUBLIC_AUTH_USER` 和 `PUBLIC_AUTH_PASSWORD`。</p></div>
+                <div><strong>账号与数据归属</strong><p>公网登录用户会初始化为 owner 账号，本地数据库记录画像、时间线、会话和训练数据归属。</p></div>
+                <div><strong>只为你私有使用</strong><p>本机版绑定 `127.0.0.1`；公网版请设置 `PUBLIC_AUTH_USER` 和 `PUBLIC_AUTH_PASSWORD`。</p></div>
               </div>
             </article>
 
@@ -1217,8 +1218,9 @@
                 <label class="check-item"><input type="checkbox" checked disabled><span>本地 AI 后端可启动，DeepSeek / OpenAI 至少一个可用。</span></label>
                 <label class="check-item"><input type="checkbox" checked disabled><span>用户能一键复盘、生成下一句、紧急救场。</span></label>
                 <label class="check-item"><input type="checkbox" checked disabled><span>有训练计划、复盘洞察和语言库沉淀。</span></label>
+                <label class="check-item"><input type="checkbox" checked disabled><span>已有 owner 账号、本地数据库和会话数据归属记录。</span></label>
                 <label class="check-item"><input type="checkbox" checked disabled><span>有隐私说明、数据导出和本地清空能力。</span></label>
-                <label class="check-item"><input type="checkbox" disabled><span>如果未来对外收费，再补账号、支付、协议和公网安全。</span></label>
+                <label class="check-item"><input type="checkbox" disabled><span>如果未来对外收费，再补注册邀请、支付、协议和公网安全。</span></label>
               </div>
             </article>
           </div>

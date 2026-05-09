@@ -8,6 +8,12 @@ const {
   writeJsonAtomic,
 } = require("./lib/json-store");
 const {
+  getOrCreateOwnerAccount,
+  publicAccountStatus,
+  recordDataOwnership,
+  recordLoginSession,
+} = require("./lib/account-store");
+const {
   validateNextMessageResult,
   validateColdStartInsights,
   validateFeedbackReflection,
@@ -30,6 +36,7 @@ const FORBIDDEN_PATH = path.join(DATA_DIR, "forbidden-expressions.json");
 const TRAINING_PROGRESS_PATH = path.join(DATA_DIR, "training-progress.json");
 const TRAINING_DATA_PATH = path.join(ROOT, "assets", "training-data.json");
 const SESSIONS_PATH = path.join(DATA_DIR, "sessions.json");
+const ACCOUNT_DB_PATH = path.join(DATA_DIR, "app-db.json");
 
 loadDotEnv(path.join(ROOT, ".env"));
 
@@ -82,6 +89,44 @@ function ensureDataDir() {
   if (!fs.existsSync(TRAINING_PROGRESS_PATH)) {
     fs.writeFileSync(TRAINING_PROGRESS_PATH, JSON.stringify(defaultTrainingProgress(), null, 2), "utf8");
   }
+  ensureOwnerAccount();
+}
+
+function accountCredentials() {
+  return {
+    username: PUBLIC_AUTH_USER || "local-owner",
+    password: PUBLIC_AUTH_PASSWORD || "",
+    source: PUBLIC_AUTH_ENABLED ? "basic-auth" : "local-only"
+  };
+}
+
+function ownedDataFiles() {
+  return [
+    path.relative(DATA_DIR, PROFILE_PATH),
+    path.relative(DATA_DIR, RELATIONSHIP_PATH),
+    path.relative(DATA_DIR, TIMELINE_PATH),
+    path.relative(DATA_DIR, LIBRARY_PATH),
+    path.relative(DATA_DIR, FORBIDDEN_PATH),
+    path.relative(DATA_DIR, TRAINING_PROGRESS_PATH),
+    path.relative(DATA_DIR, SESSIONS_PATH),
+  ];
+}
+
+function ensureOwnerAccount(req = null) {
+  const owner = getOrCreateOwnerAccount(ACCOUNT_DB_PATH, accountCredentials());
+  recordDataOwnership(ACCOUNT_DB_PATH, owner.id, ownedDataFiles());
+  if (req) {
+    recordLoginSession(ACCOUNT_DB_PATH, owner.id, {
+      source: accountCredentials().source,
+      userAgent: req.headers["user-agent"] || ""
+    });
+  }
+  return owner;
+}
+
+function currentAccountStatus() {
+  const owner = ensureOwnerAccount();
+  return publicAccountStatus(ACCOUNT_DB_PATH, owner.id);
 }
 
 function defaultProfile() {
@@ -256,6 +301,7 @@ function deleteSession(sessionId) {
 
 function dataFileStatus() {
   const files = [
+    ["accountDatabase", ACCOUNT_DB_PATH],
     ["profile", PROFILE_PATH],
     ["relationship", RELATIONSHIP_PATH],
     ["timeline", TIMELINE_PATH],
@@ -279,9 +325,12 @@ function dataFileStatus() {
 function launchReadiness() {
   const files = dataFileStatus();
   const requiredFilesReady = files.every((file) => file.exists);
+  const account = currentAccountStatus();
   const checks = [
     { key: "localOnly", label: "本机运行", ok: HOST === "127.0.0.1" },
     { key: "privateAuth", label: "公网访问已加登录保护", ok: HOST === "127.0.0.1" || PUBLIC_AUTH_ENABLED },
+    { key: "accountSystem", label: "账号系统已初始化", ok: Boolean(account.currentUser) },
+    { key: "localDatabase", label: "本地数据库已建立", ok: Boolean(account.database && account.database.userCount >= 1) },
     { key: "aiConfigured", label: "AI 已连接", ok: providerConfigured() },
     { key: "dataFiles", label: "本地数据文件完整", ok: requiredFilesReady },
     { key: "trainingData", label: "训练语料可读取", ok: (readTrainingData().tasks || []).length >= 21 },
@@ -310,6 +359,7 @@ function exportPayload() {
       note: "此导出只包含本地训练状态、画像摘要、时间线摘要和语言库，不包含 .env 或 API Key。"
     },
     launchReadiness: launchReadiness(),
+    account: currentAccountStatus(),
     profile: readProfile(),
     relationship: readRelationship(),
     timeline,
@@ -953,6 +1003,14 @@ function buildPrompt(task, input, profile, relationship = defaultRelationship())
 }
 
 async function handleApi(req, res, pathname) {
+  if (req.method === "GET" && pathname === "/api/account/status") {
+    const owner = ensureOwnerAccount(req);
+    return sendJson(res, 200, {
+      ok: true,
+      account: publicAccountStatus(ACCOUNT_DB_PATH, owner.id)
+    });
+  }
+
   if (req.method === "GET" && pathname === "/api/health") {
     return sendJson(res, 200, {
       ok: true,
@@ -960,22 +1018,27 @@ async function handleApi(req, res, pathname) {
       aiConfigured: providerConfigured(),
       model: MODEL,
       baseUrl: AI_PROVIDER === "deepseek" ? DEEPSEEK_BASE_URL : "https://api.openai.com/v1",
-      profileExists: fs.existsSync(PROFILE_PATH)
+      profileExists: fs.existsSync(PROFILE_PATH),
+      accountReady: Boolean(currentAccountStatus().currentUser)
     });
   }
 
   if (req.method === "GET" && pathname === "/api/system/status") {
+    const account = currentAccountStatus();
     return sendJson(res, 200, {
       ok: true,
       provider: AI_PROVIDER,
       model: MODEL,
       host: HOST,
       aiConfigured: providerConfigured(),
+      account,
       files: dataFileStatus(),
       privacy: {
         localOnly: HOST === "127.0.0.1",
         apiKeyInBrowser: false,
         authEnabled: PUBLIC_AUTH_ENABLED,
+        accountUser: account.currentUser ? account.currentUser.username : null,
+        accountDatabaseReady: Boolean(account.currentUser),
         rawChatStoredByDefault: false,
         exportIncludesApiKey: false
       },

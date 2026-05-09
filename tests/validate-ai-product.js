@@ -34,6 +34,7 @@ const requiredFiles = [
   path.join("assets", "icon-512.svg"),
   path.join("assets", "training-data.json"),
   path.join("lib", "json-store.js"),
+  path.join("lib", "account-store.js"),
   path.join("lib", "ai-validators.js"),
   path.join("lib", "review-insights.js"),
   path.join("data", "profile.example.json"),
@@ -304,6 +305,10 @@ for (const coverPhrase of [
   "隐私边界",
   "导出本地数据",
   "危险操作",
+  "账号与数据归属",
+  "owner 账号",
+  "本地数据库",
+  "会话数据归属",
   "落地检查清单",
   "紧急救场",
   "今日只练一件事",
@@ -368,11 +373,13 @@ const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
 const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
 const renderYaml = fs.readFileSync(path.join(root, "render.yaml"), "utf8");
 const jsonStore = fs.readFileSync(path.join(root, "lib", "json-store.js"), "utf8");
+const accountStore = fs.readFileSync(path.join(root, "lib", "account-store.js"), "utf8");
 const aiValidators = fs.readFileSync(path.join(root, "lib", "ai-validators.js"), "utf8");
 const reviewInsights = fs.readFileSync(path.join(root, "lib", "review-insights.js"), "utf8");
 
 for (const moduleNeedle of [
   'require("./lib/json-store")',
+  'require("./lib/account-store")',
   'require("./lib/ai-validators")',
 ]) {
   assert(server.includes(moduleNeedle), `server.js must use module: ${moduleNeedle}`);
@@ -380,6 +387,10 @@ for (const moduleNeedle of [
 
 for (const needle of ["writeJsonAtomic", "backupCorruptJson", "readJsonFile", "module.exports"]) {
   assert(jsonStore.includes(needle), `Missing json-store capability: ${needle}`);
+}
+
+for (const needle of ["getOrCreateOwnerAccount", "recordDataOwnership", "recordLoginSession", "publicAccountStatus", "verifyPassword", "pbkdf2", "module.exports"]) {
+  assert(accountStore.includes(needle), `Missing account-store capability: ${needle}`);
 }
 
 for (const needle of ["validateReviewResult", "validateNextMessageResult", "validateColdStartInsights", "validateFeedbackReflection", "validateUniversalCommunicationResult", "validateManipulationCheckResult", "normalizeStringArray", "module.exports"]) {
@@ -410,6 +421,7 @@ for (const needle of [
   "/api/insights",
   "/api/ai/cold-start-insights",
   "/api/system/status",
+  "/api/account/status",
   "/api/export",
   "/api/data/reset",
   "/api/training/complete",
@@ -451,6 +463,12 @@ for (const needle of [
   "RESET_LOCAL_DATA",
   "privacy",
   "launchReadiness",
+  "ACCOUNT_DB_PATH",
+  "ensureOwnerAccount",
+  "currentAccountStatus",
+  "recordDataOwnership",
+  "publicAccountStatus",
+  "accountDatabase",
 ]) {
   assert(server.includes(needle), `Missing server capability: ${needle}`);
 }

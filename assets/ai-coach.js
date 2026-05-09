@@ -830,6 +830,9 @@ function renderSystemStatus(status) {
   const box = document.getElementById("systemStatusResult");
   if (!box || !status) return;
   const readiness = status.launchReadiness || {};
+  const account = status.account || {};
+  const currentUser = account.currentUser || {};
+  const database = account.database || {};
   const checks = Array.isArray(readiness.checks) ? readiness.checks : [];
   const fileCount = Array.isArray(status.files) ? status.files.filter((file) => file.exists).length : 0;
   const fileTotal = Array.isArray(status.files) ? status.files.length : 0;
@@ -841,6 +844,7 @@ function renderSystemStatus(status) {
   box.innerHTML =
     "<strong>落地评分：" + Number(readiness.score || 0) + "/100</strong>" +
     "<p>AI：" + (status.aiConfigured ? "已连接" : "未配置") + "；模型：" + escapeHtml(status.model || "未知") + "；数据文件：" + fileCount + "/" + fileTotal + "。</p>" +
+    "<p>账号：" + escapeHtml(currentUser.username || "未初始化") + "；角色：" + escapeHtml(currentUser.role || "未知") + "；本地数据库用户数：" + Number(database.userCount || 0) + "；归属文件：" + Number(database.ownedFileCount || 0) + "。</p>" +
     items;
 }
 
