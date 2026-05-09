@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>异性聊天综合训练指南</title>
   <link rel="stylesheet" href="assets/styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="聊天训练台">
 </head>
 <body class="comfort-glow">
   <div class="app-shell">
@@ -62,6 +67,14 @@
         <a class="nav-link" href="#practice" aria-label="练习区">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span>练习区</span>
+        </a>
+        <a class="nav-link" href="#trendChart" aria-label="情绪趋势">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 13l3-4 3 3 4-6"/></svg>
+          <span>情绪趋势</span>
+        </a>
+        <a class="nav-link" href="#sessionHistory" aria-label="会话历史">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/><path d="M12 3v1"/></svg>
+          <span>会话历史</span>
         </a>
       </nav>
 
@@ -1013,6 +1026,25 @@
               <button id="refreshTimelineBtn" class="action-btn primary" type="button">刷新时间线</button>
             </article>
 
+            <article class="tool-panel checker searchable" id="sessionHistory">
+              <h3>多轮会话历史</h3>
+              <p>把每次聊天场景保存为独立会话，点击可载入上下文继续复盘。每个会话保存最近 20 轮记录。</p>
+              <div class="tool-actions">
+                <input id="sessionNameInput" type="text" placeholder="会话名称（选填）" style="flex:1;min-width:0">
+                <button id="createSessionBtn" class="action-btn primary" type="button">新建会话</button>
+                <button id="refreshSessionsBtn" class="action-btn" type="button">刷新列表</button>
+              </div>
+              <div id="sessionListResult" class="result" aria-live="polite">
+                <strong>正在读取会话历史</strong>
+                <p>新建会话后，每次 AI 复盘结果可以保存进去，形成完整上下文。</p>
+              </div>
+              <div id="activeSessionBanner" style="display:none" class="result">
+                <strong>当前会话：<span id="activeSessionName"></span></strong>
+                <div id="activeSessionTurns"></div>
+                <button id="clearActiveSessionBtn" class="action-btn" type="button" style="margin-top:8px">取消选中会话</button>
+              </div>
+            </article>
+
             <article class="tool-panel searchable review-insight-panel" id="reviewInsightPanel">
               <h3>复盘洞察</h3>
               <p>系统会根据每一次 AI 复盘记录，统计最常犯的 5 个错误，并给出本周训练重点。</p>
@@ -1410,6 +1442,25 @@
           </div>
         </section>
 
+        <section id="trendChart" class="band">
+          <div class="section-head">
+            <div>
+              <h2>情绪趋势图</h2>
+              <p>每次 AI 复盘后自动记录风险评分和 6 维度数据，在这里可视化你的进步曲线。</p>
+            </div>
+            <button id="refreshTrendBtn" class="action-btn" type="button">刷新数据</button>
+          </div>
+          <div class="tool-panel searchable trend-chart-panel">
+            <div class="trend-legend">
+              <span class="tag" style="background:#e06c7533">■ 风险评分（越低越好）</span>
+              <span class="tag" style="background:#98c37933">■ 共情回应（越高越好）</span>
+              <span class="tag" style="background:#61afef33">■ 情绪稳定（越高越好）</span>
+            </div>
+            <canvas id="trendChartCanvas" class="trend-chart-canvas" aria-label="情绪趋势折线图"></canvas>
+            <div id="trendChartMsg" class="trend-chart-msg">完成 2 次以上 AI 深度复盘后，图表自动出现。</div>
+          </div>
+        </section>
+
         <section id="practice" class="band">
           <div class="section-head">
             <div>
@@ -1487,5 +1538,10 @@
 
   <script src="assets/app.js"></script>
   <script src="assets/ai-coach.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
 </body>
 </html>

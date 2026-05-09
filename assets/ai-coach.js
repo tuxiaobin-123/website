@@ -173,6 +173,8 @@ async function runWorkbench() {
     if (quickInput) quickInput.value = text;
     createPendingFeedback("每日聊天工作台", nextPayload.data.recommended || rescuePayload.data.recommended || "", text);
     if (feedback) feedback.classList.add("is-visible");
+    saveToActiveSession("复盘", text, (review.nextMessage || "") + " | " + (nextPayload.data.recommended || ""));
+    refreshTrendChart();
   } catch (error) {
     renderAiError(reviewBox, error);
     nextBox.innerHTML = "<strong>建议下一句</strong><p>本次生成失败，先不要急着发。</p>";
@@ -920,6 +922,207 @@ async function completeTodayTraining() {
   }
 }
 
+// ── 情绪趋势图 ──────────────────────────────────────────────
+
+function renderTrendChart(timeline) {
+  const canvas = document.getElementById("trendChartCanvas");
+  const msg = document.getElementById("trendChartMsg");
+  if (!canvas) return;
+
+  const reviews = (timeline || []).filter((item) => item.type === "ai-review" && item.scores);
+  if (reviews.length < 2) {
+    if (msg) msg.textContent = "完成 2 次以上 AI 深度复盘后，图表自动出现。当前记录：" + reviews.length + " 次。";
+    return;
+  }
+  if (msg) msg.textContent = "共 " + reviews.length + " 次复盘记录，从旧到新排列。";
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 600;
+  const H = rect.height || 260;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  const pad = { top: 20, right: 24, bottom: 36, left: 36 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+  const n = reviews.length;
+
+  ctx.fillStyle = "#131320";
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = "#2a2a40";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i += 2) {
+    const y = pad.top + cH - (i / 10) * cH;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cW, y);
+    ctx.stroke();
+    ctx.fillStyle = "#666";
+    ctx.font = `${11 * dpr / dpr}px sans-serif`;
+    ctx.textAlign = "right";
+    ctx.fillText(i, pad.left - 4, y + 4);
+  }
+
+  function cx(i) { return pad.left + (n === 1 ? cW / 2 : (i / (n - 1)) * cW); }
+  function cy(v) { return pad.top + cH - (Math.max(0, Math.min(10, Number(v) || 0)) / 10) * cH; }
+
+  function drawLine(values, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = cx(i), y = cy(v);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    values.forEach((v, i) => {
+      ctx.beginPath();
+      ctx.arc(cx(i), cy(v), 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+
+  const reversedReviews = reviews.slice().reverse();
+  drawLine(reversedReviews.map((r) => r.riskScore || 0), "#e06c75");
+  drawLine(reversedReviews.map((r) => (r.scores || {}).empathy || 0), "#98c379");
+  drawLine(reversedReviews.map((r) => (r.scores || {}).emotionalStability || 0), "#61afef");
+
+  // X labels
+  ctx.fillStyle = "#666";
+  ctx.textAlign = "center";
+  ctx.font = "10px sans-serif";
+  reversedReviews.forEach((item, i) => {
+    const d = item.createdAt ? new Date(item.createdAt) : null;
+    const label = d ? (d.getMonth() + 1) + "/" + d.getDate() : String(i + 1);
+    ctx.fillText(label, cx(i), pad.top + cH + 18);
+  });
+}
+
+async function refreshTrendChart() {
+  try {
+    const payload = await callAiEndpoint("/api/timeline");
+    renderTrendChart(payload.timeline ? payload.timeline.slice().reverse() : []);
+  } catch (e) {
+    const msg = document.getElementById("trendChartMsg");
+    if (msg) msg.textContent = "读取时间线失败：" + (e.message || String(e));
+  }
+}
+
+// ── 多轮会话历史 ────────────────────────────────────────────
+
+let activeSessionId = null;
+
+function renderSessionList(sessions) {
+  const box = document.getElementById("sessionListResult");
+  if (!box) return;
+  if (!sessions || !sessions.length) {
+    box.innerHTML = "<strong>暂无会话</strong><p>点击「新建会话」开始记录，每个会话独立保存聊天上下文。</p>";
+    return;
+  }
+  box.innerHTML = sessions.map((s) =>
+    "<div class=\"talk-line\" style=\"display:flex;justify-content:space-between;align-items:flex-start;gap:8px\">" +
+    "<div><strong>" + escapeHtml(s.name) + "</strong>" +
+    "<p style=\"margin:2px 0;font-size:12px;color:#888\">" + new Date(s.updatedAt).toLocaleString() + " · " + (s.turnCount || 0) + " 轮</p></div>" +
+    "<div style=\"display:flex;gap:6px;flex-shrink:0\">" +
+    "<button class=\"action-btn\" onclick=\"loadSession('" + escapeHtml(s.id) + "')\" type=\"button\">载入</button>" +
+    "<button class=\"action-btn\" onclick=\"deleteSessionById('" + escapeHtml(s.id) + "')\" type=\"button\">删除</button>" +
+    "</div></div>"
+  ).join("");
+}
+
+function renderActiveSession(session) {
+  const banner = document.getElementById("activeSessionBanner");
+  const nameEl = document.getElementById("activeSessionName");
+  const turnsEl = document.getElementById("activeSessionTurns");
+  if (!banner || !nameEl || !turnsEl) return;
+  if (!session) {
+    banner.style.display = "none";
+    activeSessionId = null;
+    return;
+  }
+  activeSessionId = session.id;
+  banner.style.display = "";
+  nameEl.textContent = session.name;
+  const turns = (session.turns || []).slice(-5).reverse();
+  turnsEl.innerHTML = turns.length
+    ? turns.map((t) =>
+        "<div style=\"border-bottom:1px solid #2a2a40;padding:6px 0;font-size:13px\">" +
+        "<span class=\"tag\" style=\"font-size:11px\">" + escapeHtml(t.type || "记录") + "</span> " +
+        escapeHtml(String(t.input || "").slice(0, 80)) +
+        "</div>"
+      ).join("")
+    : "<p style=\"color:#888;font-size:13px\">会话为空，复盘后点击「保存到会话」写入。</p>";
+}
+
+async function refreshSessions() {
+  try {
+    const payload = await callAiEndpoint("/api/sessions");
+    renderSessionList(payload.sessions);
+  } catch (e) {
+    const box = document.getElementById("sessionListResult");
+    if (box) renderAiError(box, e);
+  }
+}
+
+async function createNewSession() {
+  const nameInput = document.getElementById("sessionNameInput");
+  const name = nameInput ? nameInput.value.trim() : "";
+  try {
+    const payload = await callAiEndpoint("/api/sessions", { name: name || undefined });
+    if (nameInput) nameInput.value = "";
+    renderActiveSession(payload.session);
+    await refreshSessions();
+  } catch (e) {
+    const box = document.getElementById("sessionListResult");
+    if (box) renderAiError(box, e);
+  }
+}
+
+async function loadSession(id) {
+  try {
+    const payload = await callAiEndpoint("/api/sessions/" + id);
+    renderActiveSession(payload.session);
+    const turns = payload.session.turns || [];
+    if (turns.length) {
+      const last = turns[turns.length - 1];
+      const input = document.getElementById("workbenchInput");
+      if (input && last.input) input.value = last.input;
+    }
+  } catch (e) {
+    const box = document.getElementById("sessionListResult");
+    if (box) renderAiError(box, e);
+  }
+}
+
+async function deleteSessionById(id) {
+  if (!window.confirm("确定删除这个会话吗？")) return;
+  try {
+    const payload = await callAiEndpoint("/api/sessions/" + id);
+    await fetch("/api/sessions/" + id, { method: "DELETE" });
+    if (activeSessionId === id) renderActiveSession(null);
+    await refreshSessions();
+  } catch (e) {
+    await refreshSessions();
+  }
+}
+
+async function saveToActiveSession(type, input, output) {
+  if (!activeSessionId) return;
+  try {
+    const payload = await callAiEndpoint("/api/sessions/" + activeSessionId + "/turn", { type, input, output });
+    renderActiveSession(payload.session);
+  } catch (e) { /* silent */ }
+}
+
 function initAiCoach() {
   document.getElementById("workbenchAnalyzeBtn").addEventListener("click", runWorkbench);
   document.getElementById("workbenchExampleBtn").addEventListener("click", fillWorkbenchExample);
@@ -959,6 +1162,11 @@ function initAiCoach() {
   document.getElementById("exportLocalDataBtn").addEventListener("click", exportLocalData);
   document.getElementById("resetLocalDataBtn").addEventListener("click", resetLocalData);
 
+  document.getElementById("createSessionBtn").addEventListener("click", createNewSession);
+  document.getElementById("refreshSessionsBtn").addEventListener("click", refreshSessions);
+  document.getElementById("clearActiveSessionBtn").addEventListener("click", () => renderActiveSession(null));
+  document.getElementById("refreshTrendBtn").addEventListener("click", refreshTrendChart);
+
   refreshAiProfile();
   refreshRelationshipProfile();
   refreshTimeline();
@@ -967,6 +1175,8 @@ function initAiCoach() {
   refreshTrainingProgress();
   refreshReviewInsights();
   refreshSystemStatus();
+  refreshSessions();
+  refreshTrendChart();
 }
 
 initAiCoach();

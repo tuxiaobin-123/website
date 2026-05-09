@@ -19,6 +19,8 @@ const requiredFiles = [
   "server.js",
   "package.json",
   "render.yaml",
+  "manifest.json",
+  "sw.js",
   "Dockerfile",
   ".dockerignore",
   "DEPLOY.md",
@@ -28,6 +30,8 @@ const requiredFiles = [
   path.join("assets", "styles.css"),
   path.join("assets", "app.js"),
   path.join("assets", "ai-coach.js"),
+  path.join("assets", "icon-192.svg"),
+  path.join("assets", "icon-512.svg"),
   path.join("assets", "training-data.json"),
   path.join("lib", "json-store.js"),
   path.join("lib", "ai-validators.js"),
@@ -132,6 +136,15 @@ const requiredIds = [
   "timelinePanel",
   "timelineResult",
   "refreshTimelineBtn",
+  "sessionHistory",
+  "sessionNameInput",
+  "createSessionBtn",
+  "refreshSessionsBtn",
+  "sessionListResult",
+  "activeSessionBanner",
+  "activeSessionName",
+  "activeSessionTurns",
+  "clearActiveSessionBtn",
   "feedbackOutcome",
   "feedbackNote",
   "saveFeedbackBtn",
@@ -149,6 +162,10 @@ const requiredIds = [
   "phrasePackList",
   "forbiddenSampleList",
   "launchCenter",
+  "trendChart",
+  "refreshTrendBtn",
+  "trendChartCanvas",
+  "trendChartMsg",
   "systemStatusPanel",
   "refreshSystemStatusBtn",
   "privacyNoticePanel",
@@ -173,6 +190,8 @@ assert(!html.includes("<script>\n    const searchInput"), "index.html should not
 const styles = fs.readFileSync(stylesPath, "utf8");
 const app = fs.readFileSync(appPath, "utf8");
 const aiCoach = fs.readFileSync(aiCoachPath, "utf8");
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
+const serviceWorker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const trainingData = JSON.parse(fs.readFileSync(trainingDataPath, "utf8"));
 const serializedTrainingData = JSON.stringify(trainingData);
 assert(!/\?{2,}/.test(serializedTrainingData), "training-data contains corrupted question-mark text");
@@ -192,6 +211,11 @@ assert(app.includes("loadTrainingData"), "app.js must load external training dat
 assert(app.includes("renderDataDrivenOptions"), "app.js must render select options from training data");
 assert(app.includes("populateSelect"), "app.js must include reusable select population helper");
 assert(app.includes("renderPhrasePacks"), "app.js must render phrase samples from training data");
+assert(manifest.display === "standalone", "manifest must support standalone PWA display");
+assert(Array.isArray(manifest.icons) && manifest.icons.length >= 2, "manifest must include mobile install icons");
+for (const needle of ["self.addEventListener(\"install\"", "self.addEventListener(\"fetch\"", "/api/", "caches.open"]) {
+  assert(serviceWorker.includes(needle), `service worker missing capability: ${needle}`);
+}
 for (const inlineDataNeedle of ["const tasks = [", "const chatCoachScenarios = {", "const nextMessageBank = {", "const coachPersonaCopy = {", "const personaScenarioOpeners = {", "const challengeBank = ["]) {
   assert(!app.includes(inlineDataNeedle), `app.js should not keep inline data: ${inlineDataNeedle}`);
 }
@@ -200,7 +224,7 @@ for (const phrase of ["AI 深度复盘", "AI 下一句生成", "用户画像记�
   assert(html.includes(phrase), `Missing product phrase: ${phrase}`);
 }
 
-for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights", "fillUniversalExample", "runUniversalCommunication", "renderUniversalCommunication", "fillManipulationExample", "runManipulationCheck", "renderManipulationCheck", "saveManipulationForbidden"]) {
+for (const fn of ["callAiEndpoint", "sanitizeChatText", "runAiReview", "runAiNextMessage", "refreshAiProfile", "resetAiProfile", "saveRelationshipProfile", "refreshTimeline", "saveResultFeedback", "saveLibraryItem", "refreshLanguageLibrary", "saveForbiddenExpression", "renderForbiddenExpressions", "runQuickReview", "runQuickNext", "runQuickRescue", "renderSixDimensionScores", "refreshTrainingProgress", "completeTodayTraining", "runWorkbenchTrial", "fillAiReviewExample", "runAiReviewTrial", "fillAiNextExample", "runAiNextTrial", "createPendingFeedback", "savePendingFeedback", "runColdStartInsights", "fillUniversalExample", "runUniversalCommunication", "renderUniversalCommunication", "fillManipulationExample", "runManipulationCheck", "renderManipulationCheck", "saveManipulationForbidden", "renderTrendChart", "refreshTrendChart", "renderSessionList", "renderActiveSession", "refreshSessions", "createNewSession", "loadSession", "deleteSessionById", "saveToActiveSession"]) {
   assert(aiCoach.includes(fn), `Missing AI coach function: ${fn}`);
 }
 
@@ -225,6 +249,7 @@ for (const visualNeedle of [
   "universal-result",
   "manipulation-safety",
   "risk-list",
+  "trend-chart-panel",
   "cover-hero",
   "cover-visual",
   "quick-access-card",
@@ -297,6 +322,10 @@ for (const coverPhrase of [
   "危险点",
   "健康改写",
   "加入禁用表达库",
+  "多轮会话历史",
+  "情绪趋势图",
+  "新建会话",
+  "刷新数据",
   "Gottman 连接请求",
   "NVC 非暴力沟通",
   "Harvard 主动倾听",
@@ -308,13 +337,9 @@ for (const coverPhrase of [
   assert(html.includes(coverPhrase), `Missing modern cover phrase: ${coverPhrase}`);
 }
 
-for (const mobileNeedle of [
-  "overflow-x: auto",
-  ".sidebar-note {\n    display: none;",
-  ".nav-link {\n    min-width: 112px;",
-]) {
-  assert(styles.includes(mobileNeedle), `Missing mobile navigation fix: ${mobileNeedle}`);
-}
+assert(styles.includes("overflow-x: auto"), "Missing mobile navigation overflow fix");
+assert(/\.sidebar-note\s*\{\s*display:\s*none;/.test(styles), "Missing mobile sidebar note hide rule");
+assert(/\.nav-link\s*\{\s*min-width:\s*112px;/.test(styles), "Missing mobile nav link width rule");
 
 for (const smartFn of [
   "inferSmartRoute",
@@ -380,6 +405,7 @@ for (const needle of [
   "/api/profile",
   "/api/relationship",
   "/api/timeline",
+  "/api/sessions",
   "/api/progress",
   "/api/insights",
   "/api/ai/cold-start-insights",
@@ -410,6 +436,10 @@ for (const needle of [
   "universal-communication",
   "manipulation-check",
   "localManipulationSignals",
+  "readSessions",
+  "createSession",
+  "addSessionTurn",
+  "deleteSession",
   "validateManipulationCheckResult",
   "validateUniversalCommunicationResult",
   "feedback-loop",

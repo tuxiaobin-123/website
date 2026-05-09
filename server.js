@@ -29,6 +29,7 @@ const LIBRARY_PATH = path.join(DATA_DIR, "language-library.json");
 const FORBIDDEN_PATH = path.join(DATA_DIR, "forbidden-expressions.json");
 const TRAINING_PROGRESS_PATH = path.join(DATA_DIR, "training-progress.json");
 const TRAINING_DATA_PATH = path.join(ROOT, "assets", "training-data.json");
+const SESSIONS_PATH = path.join(DATA_DIR, "sessions.json");
 
 loadDotEnv(path.join(ROOT, ".env"));
 
@@ -208,6 +209,49 @@ function readTrainingProgress() {
 
 function writeTrainingProgress(progress) {
   writeJsonAtomic(TRAINING_PROGRESS_PATH, progress);
+}
+
+function readSessions() {
+  return readJsonFile(SESSIONS_PATH, () => [], Array.isArray);
+}
+
+function writeSessions(sessions) {
+  writeJsonAtomic(SESSIONS_PATH, sessions.slice(-50));
+}
+
+function createSession(name) {
+  const sessions = readSessions();
+  const session = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: String(name || `会话 ${sessions.length + 1}`).slice(0, 80),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    turns: []
+  };
+  sessions.push(session);
+  writeSessions(sessions);
+  return session;
+}
+
+function addSessionTurn(sessionId, turn) {
+  const sessions = readSessions();
+  const session = sessions.find((s) => s.id === sessionId);
+  if (!session) return null;
+  const stored = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    createdAt: new Date().toISOString(),
+    ...turn
+  };
+  session.turns = [...(session.turns || []), stored].slice(-20);
+  session.updatedAt = new Date().toISOString();
+  writeSessions(sessions);
+  return { session, turn: stored };
+}
+
+function deleteSession(sessionId) {
+  const sessions = readSessions().filter((s) => s.id !== sessionId);
+  writeSessions(sessions);
+  return sessions;
 }
 
 function dataFileStatus() {
@@ -571,12 +615,29 @@ function parseModelJson(text) {
 
 function buildInstructions() {
   return [
-    "你是一个中文恋爱沟通个人教练，服务对象是一个只为自己本地使用的用户。",
-    "目标是提升真实沟通能力：情绪稳定、尊重边界、清楚表达、不过度讨好、不操控。",
-    "不要输出 PUA、操控、羞辱、威胁、冷暴力、隐私侵犯、性骚扰或逼迫对方的建议。",
-    "不要鼓励用户纠缠明确拒绝的人。对方明确拒绝或保持距离时，建议体面后退。",
-    "只返回 JSON，不要 Markdown，不要代码块。",
-    "返回字段必须符合任务要求。所有文本用简体中文，直接、具体、可执行。"
+    "你是一个中文恋爱沟通私人教练，只服务于当前本地用户一人，目标是帮他建立长期稳定的沟通能力。",
+    "",
+    "【核心目标】",
+    "帮用户做到：情绪稳定不追问、边界清晰不越界、表达具体不含糊、推进节奏合适、允许对方自由选择。",
+    "不是教他「说什么最有效」，而是让他「不说让关系倒退的话」。",
+    "",
+    "【中文语境须知】",
+    "中文暧昧期沟通有以下常见雷区，分析时须专门识别：",
+    "- 连续追问（连发两句以上未获回应）",
+    "- 质问语气（你为什么、你怎么、凭什么）",
+    "- 索要承诺（你是不是喜欢我、你怎么看我们）",
+    "- 情绪催促（你能不能快点回、我等你很久了）",
+    "- 显眼的卑微感（你不回我我就……、你随便我无所谓）",
+    "好的中文表达特征：短、留白、允许对方不回、有温度但不依赖。",
+    "",
+    "【硬性边界】",
+    "不输出：PUA话术、操控、打压、冷暴力、情绪勒索、威胁、隐私侵犯、性骚扰或逼迫。",
+    "对方明确拒绝或持续保持距离时，必须建议体面后退，不建议继续追。",
+    "",
+    "【输出格式】",
+    "只返回合法 JSON，不加 Markdown、不加代码块、不加注释。",
+    "所有字符串值用简体中文，内容直接、具体、可执行，避免泛泛而谈。",
+    "评分字段（riskScore、0-10各维度）使用数字，不加单位。"
   ].join("\n");
 }
 
@@ -685,7 +746,9 @@ function buildPrompt(task, input, profile, relationship = defaultRelationship())
 
   if (task === "review") {
     return [
-      "任务：对真实聊天记录做深度复盘，并更新用户画像。",
+      "任务：对真实聊天记录做深度复盘，定位问题节点，给出可立即执行的改写和下一句。",
+      "重点关注：连续追问、质问语气、情绪催促、索要承诺、过度卑微感、压迫性表达。",
+      "对方变冷或沉默时，不要建议继续追问，应建议降频或暂停。",
       "当前用户画像：",
       profileBlock,
       "当前关系档案：",
@@ -728,7 +791,9 @@ function buildPrompt(task, input, profile, relationship = defaultRelationship())
 
   if (task === "next-message") {
     return [
-      "任务：根据上下文生成下一句，并更新用户画像。",
+      "任务：根据上下文生成下一句，要求短、自然、低压力、给对方留空间。",
+      "生成原则：不追问、不催促、不索要情感承诺、允许对方不回或慢回。",
+      "如果上下文显示对方在疏远或拒绝，推荐的话术应是降频或体面退出，而不是继续推进。",
       "当前用户画像：",
       profileBlock,
       "当前关系档案：",
@@ -1201,6 +1266,42 @@ async function handleApi(req, res, pathname) {
       timeline: timeline.slice(-30).reverse(),
       insights: buildReviewInsights(timeline)
     });
+  }
+
+  if (req.method === "GET" && pathname === "/api/sessions") {
+    const sessions = readSessions().map(({ turns, ...s }) => ({ ...s, turnCount: (turns || []).length })).reverse();
+    return sendJson(res, 200, { ok: true, sessions });
+  }
+
+  if (req.method === "POST" && pathname === "/api/sessions") {
+    const body = await readJson(req);
+    const session = createSession(body.name);
+    return sendJson(res, 200, { ok: true, session });
+  }
+
+  if (req.method === "GET" && pathname.startsWith("/api/sessions/")) {
+    const id = pathname.slice("/api/sessions/".length);
+    const session = readSessions().find((s) => s.id === id);
+    if (!session) return sendJson(res, 404, { ok: false, error: "会话不存在。" });
+    return sendJson(res, 200, { ok: true, session });
+  }
+
+  if (req.method === "POST" && pathname.startsWith("/api/sessions/") && pathname.endsWith("/turn")) {
+    const id = pathname.slice("/api/sessions/".length, -"/turn".length);
+    const body = await readJson(req);
+    const result = addSessionTurn(id, {
+      type: String(body.type || "note").slice(0, 40),
+      input: String(body.input || "").slice(0, 3000),
+      output: String(body.output || "").slice(0, 3000)
+    });
+    if (!result) return sendJson(res, 404, { ok: false, error: "会话不存在。" });
+    return sendJson(res, 200, { ok: true, session: result.session, turn: result.turn });
+  }
+
+  if (req.method === "DELETE" && pathname.startsWith("/api/sessions/")) {
+    const id = pathname.slice("/api/sessions/".length);
+    const sessions = deleteSession(id);
+    return sendJson(res, 200, { ok: true, sessions: sessions.map(({ turns, ...s }) => ({ ...s, turnCount: (turns || []).length })).reverse() });
   }
 
   if (req.method === "POST" && pathname === "/api/ai/next-message") {

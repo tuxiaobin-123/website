@@ -5,6 +5,7 @@ data/timeline.json
 data/language-library.json
 data/forbidden-expressions.json
 data/training-progress.json
+data/sessions.json
 data/*.bak
 node_modules/
 *.log
