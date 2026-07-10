@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>张雪峰，快跑！</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <div id="startScreen" class="overlay">
+      <div class="start-content">
+        <h1 class="game-title">🏃‍♂️ 张雪峰，快跑！🍦</h1>
+        <p class="subtitle">吃雪糕跑马拉松 · 热搜版</p>
+        <div class="instructions">
+          <p>🎮 操作说明</p>
+          <p>按 <span class="key">空格键</span> 或 <span class="key">点击屏幕</span> 跳跃</p>
+          <p>收集雪糕 🍦 加分，躲避障碍物！</p>
+        </div>
+        <p class="high-score">🏆 最高分：<span id="startHighScore">0</span></p>
+        <button id="startBtn" class="btn">开始游戏</button>
+      </div>
+    </div>
+
+    <div id="gameOverScreen" class="overlay hidden">
+      <div class="gameover-content">
+        <h2 class="gameover-title">游戏结束！</h2>
+        <div class="score-display">
+          <p>本次得分</p>
+          <p class="final-score" id="finalScore">0</p>
+        </div>
+        <div class="score-display">
+          <p>收集雪糕</p>
+          <p class="icecream-count">🍦 <span id="iceCreamCount">0</span></p>
+        </div>
+        <p class="high-score">🏆 最高分：<span id="endHighScore">0</span></p>
+        <button id="restartBtn" class="btn">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
